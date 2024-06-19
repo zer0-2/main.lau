@@ -4,35 +4,31 @@
 -- Function to find the chest and orient the turtle
 function findChestAndOrient()
     local directions = {
-        { "forward", turtle.forward, turtle.turnRight, turtle.turnLeft },
-        { "backward", turtle.back, turtle.turnRight, turtle.turnLeft },
-        { "up", turtle.up, turtle.down, turtle.up },
-        { "down", turtle.down, turtle.up, turtle.down }
+        { "forward", turtle.forward, turtle.detect, turtle.suck },
+        { "backward", function() turtle.turnLeft(); turtle.turnLeft(); return turtle.forward(); end, function() turtle.turnLeft(); turtle.turnLeft(); return turtle.detect(); end, turtle.suck },
+        { "up", turtle.up, turtle.detectUp, turtle.suckUp },
+        { "down", turtle.down, turtle.detectDown, turtle.suckDown },
+        { "left", turtle.turnLeft, turtle.detect, turtle.suck, turtle.turnRight },
+        { "right", turtle.turnRight, turtle.detect, turtle.suck, turtle.turnLeft }
     }
     
     for i, dir in ipairs(directions) do
-        if dir[2]() then
-            if turtle.suck() or turtle.suckUp() or turtle.suckDown() then
-                print("Chest found " .. dir[1] .. ". Starting mining from the opposite direction.")
-                if dir[1] == "forward" then
-                    turtle.back()
-                elseif dir[1] == "backward" then
-                    turtle.forward()
-                elseif dir[1] == "up" then
-                    turtle.down()
-                elseif dir[1] == "down" then
-                    turtle.up()
+        dir[1]()  -- move or turn
+        if dir[3]() then  -- detect
+            if dir[4]() then  -- suck
+                print("Chest found. Starting mining from the opposite direction.")
+                if i <= 4 then
+                    dir[1]()  -- move back if direction was forward, backward, up, or down
+                else
+                    dir[5]()  -- turn back if direction was left or right
                 end
                 return
             end
-            -- Return to original position if no chest found in this direction
-            if dir[1] == "forward" or dir[1] == "backward" then
-                dir[2]()  -- move back to original position
-            elseif dir[1] == "up" then
-                dir[3]()  -- move down to original position
-            elseif dir[1] == "down" then
-                dir[3]()  -- move up to original position
-            end
+        end
+        if i <= 4 then
+            dir[1]()  -- move back if direction was forward, backward, up, or down
+        else
+            dir[5]()  -- turn back if direction was left or right
         end
     end
     error("No chest found nearby. Please place a chest with fuel and restart the program.")
@@ -171,7 +167,7 @@ print("Enter the width of the area to mine:")
 local width = tonumber(read())
 
 -- Get the start Y-coordinate of the turtle
-local startY = select(2, turtle.inspect())
+local startY = select(2, turtle.inspectUp())
 
 print("Starting mining operation...")
 
