@@ -1,3 +1,4 @@
+
 -- Function to mine a cube shape around the turtle
 function mineCube(radius)
     for x = -radius, radius do
