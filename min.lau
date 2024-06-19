@@ -4,16 +4,15 @@
 -- Function to find the chest and orient the turtle
 function findChestAndOrient()
     local directions = {
-        { "forward", turtle.forward, turtle.detect, turtle.suck },
-        { "backward", turtle.back, function() turtle.turnLeft() turtle.turnLeft() return turtle.detect() end, turtle.suck },
-        { "up", turtle.up, turtle.detect, turtle.suck },
-        { "down", turtle.down, turtle.detectDown, turtle.suckDown }
+        { "forward", turtle.forward, turtle.turnRight, turtle.turnLeft },
+        { "backward", turtle.back, turtle.turnRight, turtle.turnLeft },
+        { "up", turtle.up, turtle.down, turtle.up },
+        { "down", turtle.down, turtle.up, turtle.down }
     }
     
     for i, dir in ipairs(directions) do
-        if dir[3]() then
-            dir[2]()
-            if dir[4]() then
+        if dir[2]() then
+            if turtle.suck() or turtle.suckUp() or turtle.suckDown() then
                 print("Chest found " .. dir[1] .. ". Starting mining from the opposite direction.")
                 if dir[1] == "forward" then
                     turtle.back()
@@ -26,6 +25,14 @@ function findChestAndOrient()
                 end
                 return
             end
+            -- Return to original position if no chest found in this direction
+            if dir[1] == "forward" or dir[1] == "backward" then
+                dir[2]()  -- move back to original position
+            elseif dir[1] == "up" then
+                dir[3]()  -- move down to original position
+            elseif dir[1] == "down" then
+                dir[3]()  -- move up to original position
+            end
         end
     end
     error("No chest found nearby. Please place a chest with fuel and restart the program.")
@@ -34,8 +41,11 @@ end
 -- Function to refuel the turtle from the chest
 function refuelFromChest()
     turtle.select(1)
-    turtle.suck(64)
-    turtle.refuel()
+    if turtle.suck(64) or turtle.suckUp(64) or turtle.suckDown(64) then
+        turtle.refuel()
+    else
+        print("Unable to refuel from the chest.")
+    end
 end
 
 -- Function to check fuel level and refuel if necessary
@@ -59,7 +69,9 @@ end
 function emptyInventory()
     for i = 2, 16 do  -- Slot 1 is reserved for fuel
         turtle.select(i)
-        turtle.drop()
+        if not (turtle.drop() or turtle.dropUp() or turtle.dropDown()) then
+            print("Unable to drop items into the chest.")
+        end
     end
     turtle.select(1) -- Select the fuel slot again
 end
@@ -159,7 +171,7 @@ print("Enter the width of the area to mine:")
 local width = tonumber(read())
 
 -- Get the start Y-coordinate of the turtle
-local startY = select(2, turtle.inspectUp())
+local startY = select(2, turtle.inspect())
 
 print("Starting mining operation...")
 
