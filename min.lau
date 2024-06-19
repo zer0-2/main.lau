@@ -1,62 +1,11 @@
 -- Turtle Mining Program
 -- This program will mine a cubic area with specified dimensions.
 
--- Function to find the chest and orient the turtle
-function findChestAndOrient()
-    local directions = {
-        { "forward", turtle.forward, turtle.detect, turtle.suck },
-        { "backward", turtle.back, function() turtle.turnLeft(); turtle.turnLeft(); return turtle.detect(); end, function() turtle.turnLeft(); turtle.turnLeft(); return turtle.suck(); end },
-        { "up", turtle.up, turtle.detectUp, turtle.suckUp },
-        { "down", turtle.down, turtle.detectDown, turtle.suckDown },
-        { "left", function() turtle.turnLeft(); return turtle.forward(); end, function() return turtle.detect(); end, function() return turtle.suck(); end, turtle.turnRight },
-        { "right", function() turtle.turnRight(); return turtle.forward(); end, function() return turtle.detect(); end, function() return turtle.suck(); end, turtle.turnLeft }
-    }
-
-    for i, dir in ipairs(directions) do
-        if dir[1] == "left" or dir[1] == "right" then
-            dir[2]()
-        else
-            dir[2]()
-        end
-
-        if dir[3]() then
-            if dir[4]() then
-                print("Chest found. Starting mining from the opposite direction.")
-                if dir[1] == "forward" or dir[1] == "backward" or dir[1] == "up" or dir[1] == "down" then
-                    dir[2]()  -- move back if direction was forward, backward, up, or down
-                else
-                    dir[5]()  -- turn back if direction was left or right
-                    turtle.back()
-                end
-                return
-            end
-        end
-
-        if dir[1] == "forward" or dir[1] == "backward" or dir[1] == "up" or dir[1] == "down" then
-            dir[2]()  -- move back if direction was forward, backward, up, or down
-        else
-            dir[5]()  -- turn back if direction was left or right
-            turtle.back()
-        end
-    end
-
-    error("No chest found nearby. Please place a chest with fuel and restart the program.")
-end
-
--- Function to refuel the turtle from the chest
-function refuelFromChest()
-    turtle.select(1)
-    if turtle.suck(64) or turtle.suckUp(64) or turtle.suckDown(64) then
-        turtle.refuel()
-    else
-        print("Unable to refuel from the chest.")
-    end
-end
-
 -- Function to check fuel level and refuel if necessary
 function checkFuel()
     if turtle.getFuelLevel() < 100 then
-        refuelFromChest()
+        print("Low fuel. Please refuel the turtle and press Enter to continue.")
+        read()
     end
 end
 
@@ -70,18 +19,18 @@ function isInventoryFull()
     return true
 end
 
--- Function to empty the turtle's inventory into the chest
+-- Function to empty the turtle's inventory manually
 function emptyInventory()
+    print("Inventory full. Please empty the turtle's inventory and press Enter to continue.")
+    read()
     for i = 2, 16 do  -- Slot 1 is reserved for fuel
         turtle.select(i)
-        if not (turtle.drop() or turtle.dropUp() or turtle.dropDown()) then
-            print("Unable to drop items into the chest.")
-        end
+        turtle.drop()
     end
     turtle.select(1) -- Select the fuel slot again
 end
 
--- Function to return to the starting position and deposit items
+-- Function to return to the starting position and deposit items manually
 function returnToStartAndDeposit(currentDepth, currentWidth, currentHeight)
     for i = 1, currentHeight do
         turtle.up()
@@ -114,6 +63,19 @@ function mineForward()
         turtle.dig()
     end
     turtle.forward()
+end
+
+-- Function to turn the turtle to the specified direction
+function turnToDirection(direction)
+    local currentDirection = "north"
+    local directions = { "north", "east", "south", "west" }
+    local turnRight = function() turtle.turnRight() end
+    local turnLeft = function() turtle.turnLeft() end
+
+    while currentDirection ~= direction do
+        turnRight()
+        currentDirection = directions[((table.find(directions, currentDirection) % 4) + 1)]
+    end
 end
 
 -- Function to mine the specified cubic area
@@ -178,13 +140,13 @@ local targetY = tonumber(read())
 print("Enter the width of the area to mine:")
 local width = tonumber(read())
 
+print("Enter the direction to start mining (n for north, s for south, e for east, w for west):")
+local direction = read()
+
+-- Turn the turtle to the specified direction
+turnToDirection(direction)
+
 print("Starting mining operation...")
-
--- Find the chest and orient the turtle
-findChestAndOrient()
-
--- Refuel the turtle initially
-refuelFromChest()
 
 -- Start mining the area
 mineCubicArea(targetY, width, startY)
