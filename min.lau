@@ -152,6 +152,8 @@ print("Starting mining operation...")
 mineCubicArea(targetY, width, startY)
 
 -- Return to the starting position and deposit items
+print("Debugging: Width - 1 =", width - 1)
+print("Debugging: StartY - TargetY =", startY - targetY)
 returnToStartAndDeposit(width - 1, width - 1, startY - targetY)
 
 print("Mining operation complete.")
