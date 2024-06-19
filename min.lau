@@ -169,21 +169,14 @@ function mineCubicArea(depth, width, startY)
 end
 
 -- Main program
+print("Enter the current Y-coordinate (starting Y-coordinate) of the turtle:")
+local startY = tonumber(read())
+
 print("Enter the depth to mine to (world Y-coordinate):")
 local targetY = tonumber(read())
 
 print("Enter the width of the area to mine:")
 local width = tonumber(read())
-
--- Get the start Y-coordinate of the turtle
-local success, data = turtle.inspect()
-local startY = nil
-
-if success then
-    startY = data.metadata -- This will vary depending on the block
-else
-    error("Could not determine the starting Y-coordinate.")
-end
 
 print("Starting mining operation...")
 
