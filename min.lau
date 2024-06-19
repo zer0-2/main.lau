@@ -1,10 +1,3 @@
--- Define the dimensions of the mining area
-local miningWidth = 10
-local miningHeight = 5
-
--- Save the starting position
-local startX, startY, startZ = gps.locate()
-
 -- Function to find and refuel from chest
 function refuelFromChest()
     for i = 1, 4 do
@@ -26,12 +19,13 @@ end
 -- Function to mine a row
 function mineRow(width)
     for i = 1, width - 1 do
-        if turtle.getFuelLevel() < (width - i) + 10 then -- Ensure enough fuel to return
+        if turtle.getFuelLevel() < (width - i + 10) then -- Ensure enough fuel to return
+            local progress = i
             returnToStart()
             if not refuelFromChest() then
                 error("Out of fuel!")
             end
-            returnToPosition(i)
+            returnToPosition(progress, width)
         end
         turtle.dig()
         turtle.forward()
@@ -42,41 +36,53 @@ end
 function returnToStart()
     turtle.turnLeft()
     turtle.turnLeft()
-    for i = 1, miningHeight do
+    for i = 1, miningHeight - 1 do
         turtle.forward()
     end
     turtle.turnRight()
-    for i = 1, miningWidth do
+    for i = 1, miningWidth - 1 do
         turtle.forward()
     end
     turtle.turnRight()
 end
 
 -- Function to return to the current mining position
-function returnToPosition(currentWidth)
+function returnToPosition(currentWidth, width)
     turtle.turnRight()
-    for i = 1, miningWidth - currentWidth do
+    for i = 1, width - currentWidth do
         turtle.forward()
     end
     turtle.turnRight()
-    for i = 1, miningHeight do
+    for i = 1, miningHeight - 1 do
         turtle.forward()
     end
     turtle.turnLeft()
     turtle.turnLeft()
 end
 
--- Main mining loop
-for y = 1, miningHeight do
-    mineRow(miningWidth)
-    if y < miningHeight then
-        turtle.digDown()
-        turtle.down()
-        turtle.turnLeft()
-        turtle.turnLeft()
+-- Main function
+function main()
+    -- Get mining dimensions from user
+    print("Enter mining width: ")
+    miningWidth = tonumber(read())
+    print("Enter mining height: ")
+    miningHeight = tonumber(read())
+
+    -- Main mining loop
+    for y = 1, miningHeight do
         mineRow(miningWidth)
+        if y < miningHeight then
+            turtle.digDown()
+            turtle.down()
+            turtle.turnLeft()
+            turtle.turnLeft()
+            mineRow(miningWidth)
+        end
     end
+
+    -- Return to starting point
+    returnToStart()
 end
 
--- Return to starting point
-returnToStart()
+-- Start the program
+main()
