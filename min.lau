@@ -21,11 +21,11 @@ function mineRow(width)
     for i = 1, width - 1 do
         if turtle.getFuelLevel() < (width - i + 10) then -- Ensure enough fuel to return
             local progress = i
-            returnToStart()
+            returnToStart(yLevel)
             if not refuelFromChest() then
                 error("Out of fuel!")
             end
-            returnToPosition(progress, width)
+            returnToPosition(progress, width, yLevel)
         end
         turtle.dig()
         turtle.forward()
@@ -33,11 +33,11 @@ function mineRow(width)
 end
 
 -- Function to return to the start position
-function returnToStart()
+function returnToStart(yLevel)
     turtle.turnLeft()
     turtle.turnLeft()
-    for i = 1, miningHeight - 1 do
-        turtle.forward()
+    for i = 1, yLevel - 1 do
+        turtle.up()
     end
     turtle.turnRight()
     for i = 1, miningWidth - 1 do
@@ -47,14 +47,14 @@ function returnToStart()
 end
 
 -- Function to return to the current mining position
-function returnToPosition(currentWidth, width)
+function returnToPosition(currentWidth, width, yLevel)
     turtle.turnRight()
     for i = 1, width - currentWidth do
         turtle.forward()
     end
     turtle.turnRight()
-    for i = 1, miningHeight - 1 do
-        turtle.forward()
+    for i = 1, yLevel - 1 do
+        turtle.down()
     end
     turtle.turnLeft()
     turtle.turnLeft()
@@ -70,6 +70,7 @@ function main()
 
     -- Main mining loop
     for y = 1, miningHeight do
+        yLevel = y
         mineRow(miningWidth)
         if y < miningHeight then
             turtle.digDown()
@@ -81,7 +82,7 @@ function main()
     end
 
     -- Return to starting point
-    returnToStart()
+    returnToStart(miningHeight)
 end
 
 -- Start the program
