@@ -1,38 +1,21 @@
--- Function to find and refuel from chest and get coordinates
-function findChest()
+-- Function to find and refuel from chest
+function refuelFromChest()
     for i = 1, 4 do
         if turtle.detect() then
             local success, data = turtle.inspect()
             if data.name == "minecraft:chest" then
-                return true
-            end
-        end
-        turtle.turnRight()
-    end
-    return false
-end
-
-function refuelFromChest()
-    if not findChest() then
-        print("No chest found.")
-        return false
-    end
-    
-    local direction = 0 -- 0 = front, 1 = right, 2 = back, 3 = left
-    for i = 1, 4 do
-        if turtle.detect() then
-            turtle.select(1)
-            if turtle.suck() then
-                if turtle.refuel() then
-                    print("Refueled successfully")
-                    return true
+                turtle.select(1)
+                if turtle.suck() then
+                    if turtle.refuel() then
+                        print("Refueled successfully")
+                        return true
+                    end
                 end
             end
         end
         turtle.turnRight()
-        direction = direction + 1
     end
-    print("No fuel found in the chest")
+    print("No fuel found in surrounding chests")
     return false
 end
 
@@ -41,11 +24,11 @@ function mineRow(width)
     for i = 1, width - 1 do
         if turtle.getFuelLevel() < (width - i + 10) then -- Ensure enough fuel to return
             local progress = i
-            returnToStart(yLevel)
+            returnToStart(depth, height)
             if not refuelFromChest() then
                 error("Out of fuel!")
             end
-            returnToPosition(progress, width, yLevel)
+            returnToPosition(progress, width, depth, height)
         end
         turtle.dig()
         turtle.forward()
@@ -53,11 +36,14 @@ function mineRow(width)
 end
 
 -- Function to return to the start position
-function returnToStart(yLevel)
+function returnToStart(depth, height)
     turtle.turnLeft()
     turtle.turnLeft()
-    for i = 1, yLevel - 1 do
+    for i = 1, height - 1 do
         turtle.up()
+    end
+    for i = 1, depth do
+        turtle.forward()
     end
     turtle.turnRight()
     for i = 1, miningWidth - 1 do
@@ -67,13 +53,16 @@ function returnToStart(yLevel)
 end
 
 -- Function to return to the current mining position
-function returnToPosition(currentWidth, width, yLevel)
+function returnToPosition(currentWidth, width, depth, height)
     turtle.turnRight()
     for i = 1, width - currentWidth do
         turtle.forward()
     end
     turtle.turnRight()
-    for i = 1, yLevel - 1 do
+    for i = 1, depth do
+        turtle.forward()
+    end
+    for i = 1, height - 1 do
         turtle.down()
     end
     turtle.turnLeft()
@@ -87,13 +76,25 @@ function main()
     miningWidth = tonumber(read())
     print("Enter mining height: ")
     miningHeight = tonumber(read())
+    print("Enter mining depth: ")
+    miningDepth = tonumber(read())
 
     -- Save the starting position
     local startX, startY, startZ = gps.locate()
 
+    -- Ensure the turtle starts facing away from the chest
+    turtle.turnLeft()
+    turtle.turnLeft()
+
+    -- Move to the starting position for mining
+    for i = 1, miningDepth do
+        turtle.forward()
+    end
+    turtle.turnRight()
+
     -- Main mining loop
     for y = 1, miningHeight do
-        yLevel = y
+        height = y
         mineRow(miningWidth)
         if y < miningHeight then
             turtle.digDown()
@@ -105,7 +106,7 @@ function main()
     end
 
     -- Return to starting point
-    returnToStart(miningHeight)
+    returnToStart(miningDepth, miningHeight)
 end
 
 -- Start the program
