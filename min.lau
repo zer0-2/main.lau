@@ -1,308 +1,81 @@
-----------------------------------------------------------
---                 Stripmining turtle                   --
-----------------------------------------------------------
---                   Version 1.3.4                      --
-----------------------------------------------------------
--- Makes the turtle mine straight down to a specified   --
--- area defined by width, height, and a minimum Y       --
--- coordinate.                                          --
--- Usage: dig <min Y> <max Y> <length> <width> <height>--
--- <min Y> - minimum Y-coordinate to stop mining        --
--- <max Y> - maximum height for mining                  --
--- <length> - number of blocks to mine forward          --
--- <width> - number of blocks to mine to each side      --
--- <height> - number of blocks to mine vertically       --
--- (return) - go back to the starting point.            --
-----------------------------------------------------------
--- Based on a script pastebin.com/JbFMHaNg by Eonsv     --
--- Tested with CC 1.5                                   --
--- Don't forget to use chunkloaders!                    --
-----------------------------------------------------------
-
--- Tests whether a file with the filename name exists.
--- Returns true if it does and false if not
-function fileExists(name)
-    local f = io.open(name, 'r')
-    if (f ~= nil) then
-        f:close()
-        return true
-    else
-        return false
-    end
+-- Function to get the turtle's current position
+local function getTurtlePosition()
+  local x, y, z = gps.locate()
+  if x then
+    return x, y, z
+  else
+    print("GPS not available. Make sure you have a modem connected and GPS enabled.")
+    return nil
+  end
 end
 
-local arg = {...}
-
--- Saves current position to file
-function save()
-    local str = ''
-    str = str .. minY .. '\n'
-    str = str .. maxY .. '\n'
-    str = str .. x .. '\n'
-    str = str .. width .. '\n'
-    str = str .. height .. '\n'
-    str = str .. distance .. '\n'
-    local file = io.open('save', 'w')
-    file:write(str)
-    file:close()
-end
-
--- Consumes a stack of fuel from the 2nd enderchest
-function refuel(fuel)
-    if (turtle.getFuelLevel() >= fuel) then
-        return true
-    end
-    print('Refueling')
-    turtle.select(2)
-    while (not turtle.placeUp()) do
-        turtle.digUp()
-        turtle.attackUp()
-    end
-    turtle.select(16)
-    while (not turtle.suckUp()) do
-        sleep('No fuel found. Sleeping.', 10)
-    end
-    turtle.refuel(64)
-    turtle.select(2)
-    turtle.digUp()
-    if (turtle.getFuelLevel() <= fuel) then
-        sleep('Refueling failed!', 10)
-        dump()
-        refuel(200)
-    end
-end
-
--- Dumps all items into the 1st enderchest
-function dump()
-    turtle.select(1)
-    while (not turtle.placeUp()) do
-        turtle.digUp()
-        turtle.attackUp()
-    end
-    for i = 3, 16 do
-        if (turtle.getItemCount(i) > 0) then
-            turtle.select(i)
-            while (not turtle.dropUp()) do
-                sleep('Dropoff chest is full. Sleeping.', 10)
-            end
-        end
-    end
-    turtle.select(1)
-    turtle.digUp()
-    print('Dropoff successful')
-end
-
-function dropoff()
-    local empty = 0
-    -- Calculates number of empty slots
-    for i = 2, 16 do
-        if (turtle.getItemCount(i) == 0) then
-            empty = empty + 1
-        end
-    end
-    -- Dumps items if the inventory is full
-    if (empty == 0) then
-        dump()
-    end
-end
-
--- Clears the screen
-function clear()
-    term.clear()
-    term.setCursorPos(1, 1)
-end
-
--- Sleeps for %time% seconds, while displaying %text% and counting down
-function sleep(text, time)
-    for i = 0, time - 1 do
-        clear()
-        print(text)
-        print('Countdown: ' .. time - i .. 's.')
-        os.sleep(1)
-    end
-end
-
--- Returns true if successful, and false if the block is bedrock
-local function bedrockTest()
-    local test
-    test = turtle.down()
-    return test
-end
-
--- Moves up until reaching initial height
-function moveUp()
-    for i = 1, maxY - minY + 1 do
-        refuel(200)
-        while (not turtle.up()) do
-            turtle.attackUp()
-            turtle.digUp()
-        end
-    end
-end
-
--- Digging down until reaching the minimum Y-coordinate
-function digDown()
-    local fail = 0
-    while (true) do
-        dropoff()
-        refuel(500)
-        turtle.digDown()
-        if (turtle.getY() <= minY) then
-            break
-        end
-        if (not bedrockTest()) then
-            while (turtle.detectDown() == false) do
-                turtle.attackDown()
-                turtle.down()
-            end
-            os.sleep(0.2)
-            fail = fail + 1
-            if (fail == 6) then
-                break
-            end
-        end
-    end
-end
-
--- Mining loop
-function loop()
-    local forwardSteps = 0
-    while (forwardSteps < x) do
-        clear()
-        print('Blocks left to mine: ' .. x - forwardSteps)
-        for i = 1, height do
-            digDown()
-            moveUp()
-            if (i < height) then
-                if (i % 2 == 1) then
-                    turtle.turnRight()
-                    if (forwardSteps < x - width) then
-                        forward()
-                        forwardSteps = forwardSteps + 1
-                    end
-                    turtle.turnRight()
-                else
-                    turtle.turnLeft()
-                    if (forwardSteps < x - width) then
-                        forward()
-                        forwardSteps = forwardSteps + 1
-                    end
-                    turtle.turnLeft()
-                end
-            end
-        end
-        forward()
-        forwardSteps = forwardSteps + 1
-        save()
-    end
-end
-
--- Moves forward while checking for obstacles
-function forward()
-    while (not turtle.forward()) do
-        turtle.attack()
+-- Main function to mine a specified area
+local function mineArea(startX, startY, startZ, endX, endY, endZ)
+  local x, y, z = getTurtlePosition()
+  if not x then
+    return  -- Exit if GPS is not available
+  end
+  
+  -- Calculate the dimensions of the area to mine
+  local width = math.abs(endX - startX) + 1
+  local height = math.abs(endY - startY) + 1
+  local depth = math.abs(endZ - startZ) + 1
+  
+  -- Mine the area
+  for i = 1, width do
+    for j = 1, height do
+      for k = 1, depth do
         turtle.dig()
+        turtle.forward()
+      end
+      turtle.turnLeft()
+      turtle.turnLeft()
+      for k = 1, depth do
+        turtle.forward()
+      end
+      turtle.turnRight()
+      turtle.turnRight()
+      turtle.up()
     end
-end
-
--- Init sequence
-function init()
-    clear()
-    minY = tonumber(arg[1])
-    maxY = tonumber(arg[2])
-    x = tonumber(arg[3])
-    width = tonumber(arg[4])
-    height = tonumber(arg[5])
-    if (arg[6] ~= nil) then
-        distance = x
-        print('Return mode on, distance: ' .. distance .. ' blocks')
-    else
-        distance = 0
+    turtle.turnLeft()
+    turtle.turnLeft()
+    for j = 1, height do
+      turtle.forward()
     end
-    while (turtle.getItemCount(1) ~= 1) do
-        sleep('Wrong number of items in slot 1. Place one dropoff ender chest.', 5)
-    end
-    while (turtle.getItemCount(2) ~= 1) do
-        sleep('Wrong number of items in slot 2. Place one fuel ender chest.', 5)
-    end
-    save()
-    -- Creating startup file to continue mining after server restarts
-    if (not fileExists('startup')) then
-        local file = io.open('startup', 'w')
-        file:write("shell.run(\'dig\')")
-        file:close()
-    end
-    loop()
-end
-
---------
--- MAIN --
---------
-if (not fileExists('startup')) then
-    for i = 1, 5 do
-        if (arg[i] == nil) then
-            clear()
-            print('Usage: dig <min Y> <max Y> <length> <width> <height> return')
-            print()
-            print('<min Y> - minimum Y-coordinate to stop mining.')
-            print('<max Y> - maximum height for mining (e.g. your Y coordinate).')
-            print('<length> - number of blocks to mine forward.')
-            print('<width> - number of blocks to mine to each side.')
-            print('<height> - number of blocks to mine vertically.')
-            print('return - optional command to make the turtle go back to the starting point.')
-            do return end
-        end
-    end
-    init()
-else
-    clear()
-    -- Reading save file
-    local file = io.open('save', 'r')
-    minY = tonumber(file:read('*l'))
-    maxY = tonumber(file:read('*l'))
-    x = tonumber(file:read('*l'))
-    width = tonumber(file:read('*l'))
-    height = tonumber(file:read('*l'))
-    distance = tonumber(file:read('*l'))
-    file:close()
-    -- If rebooted while dumping items
-    if (turtle.getItemCount(1) == 0) then
-        turtle.select(1)
-        turtle.digUp()
-        dump()
-        while (turtle.getItemCount(1) == 0) do
-            sleep('Missing chest in slot 1.', 10)
-        end
-    end
-    -- If rebooted while refueling
-    if (turtle.getItemCount(2) == 0) then
-        turtle.select(2)
-        turtle.digUp()
-        refuel(500)
-        while (turtle.getItemCount(1) == 0) do
-            sleep('Missing chest in slot 2.', 10)
-        end
-    end
-    loop()
-end
-
--- Finishing
-shell.run('delete', 'save')
-shell.run('delete', 'startup')
-print('Done!')
-
--- Going to the starting point
-if distance > 0 then
     turtle.turnRight()
     turtle.turnRight()
-    while (distance > 0) do
-        clear()
-        print('Going back ' .. distance .. ' blocks')
-        while (not turtle.forward()) do
-            turtle.attack()
-            turtle.dig()
-        end
-        distance = distance - 1
+    if i < width then
+      turtle.turnRight()
+      turtle.forward()
+      turtle.turnLeft()
     end
-    print('Done!')
+  end
+  
+  -- Return to starting position
+  turtle.up()
+  for i = 1, width - 1 do
+    turtle.back()
+  end
+  turtle.turnLeft()
+  for i = 1, height - 1 do
+    turtle.back()
+  end
+  turtle.turnRight()
 end
+
+-- Get user input for the coordinates
+print("Enter the starting X coordinate:")
+local startX = tonumber(read())
+print("Enter the starting Y coordinate:")
+local startY = tonumber(read())
+print("Enter the starting Z coordinate:")
+local startZ = tonumber(read())
+print("Enter the ending X coordinate:")
+local endX = tonumber(read())
+print("Enter the ending Y coordinate:")
+local endY = tonumber(read())
+print("Enter the ending Z coordinate:")
+local endZ = tonumber(read())
+
+-- Call the function to mine the specified area
+mineArea(startX, startY, startZ, endX, endY, endZ)
