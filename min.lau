@@ -1,0 +1,82 @@
+-- Define the dimensions of the mining area
+local miningWidth = 10
+local miningHeight = 5
+
+-- Save the starting position
+local startX, startY, startZ = gps.locate()
+
+-- Function to find and refuel from chest
+function refuelFromChest()
+    for i = 1, 4 do
+        turtle.turnRight()
+        if turtle.detect() then
+            turtle.select(1)
+            if turtle.suck() then
+                if turtle.refuel() then
+                    print("Refueled successfully")
+                    return true
+                end
+            end
+        end
+    end
+    print("No fuel found in surrounding chests")
+    return false
+end
+
+-- Function to mine a row
+function mineRow(width)
+    for i = 1, width - 1 do
+        if turtle.getFuelLevel() < (width - i) + 10 then -- Ensure enough fuel to return
+            returnToStart()
+            if not refuelFromChest() then
+                error("Out of fuel!")
+            end
+            returnToPosition(i)
+        end
+        turtle.dig()
+        turtle.forward()
+    end
+end
+
+-- Function to return to the start position
+function returnToStart()
+    turtle.turnLeft()
+    turtle.turnLeft()
+    for i = 1, miningHeight do
+        turtle.forward()
+    end
+    turtle.turnRight()
+    for i = 1, miningWidth do
+        turtle.forward()
+    end
+    turtle.turnRight()
+end
+
+-- Function to return to the current mining position
+function returnToPosition(currentWidth)
+    turtle.turnRight()
+    for i = 1, miningWidth - currentWidth do
+        turtle.forward()
+    end
+    turtle.turnRight()
+    for i = 1, miningHeight do
+        turtle.forward()
+    end
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
+
+-- Main mining loop
+for y = 1, miningHeight do
+    mineRow(miningWidth)
+    if y < miningHeight then
+        turtle.digDown()
+        turtle.down()
+        turtle.turnLeft()
+        turtle.turnLeft()
+        mineRow(miningWidth)
+    end
+end
+
+-- Return to starting point
+returnToStart()
