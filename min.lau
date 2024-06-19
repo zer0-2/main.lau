@@ -1,35 +1,45 @@
--- Function to move the turtle to the specified coordinates
-function moveToCoordinates(x, y, z)
-    local startX, startY, startZ = gps.locate()
-
-    local deltaX = x - startX
-    local deltaY = y - startY
-    local deltaZ = z - startZ
-
-    -- Move along X-axis
-    for i = 1, math.abs(deltaX) do
-        if deltaX > 0 then
-            turtle.forward()
-        else
-            turtle.back()
+-- Function to mine a cube shape around the turtle
+function mineCube(radius)
+    for x = -radius, radius do
+        for y = -radius, radius do
+            for z = -radius, radius do
+                turtle.dig()
+                turtle.forward()
+            end
+            if y < radius then
+                turtle.up()
+            end
         end
-    end
 
-    -- Move along Y-axis
-    for i = 1, math.abs(deltaY) do
-        if deltaY > 0 then
-            turtle.up()
-        else
+        -- Move to the starting Y-level
+        for i = 1, radius do
             turtle.down()
         end
-    end
 
-    -- Move along Z-axis
-    for i = 1, math.abs(deltaZ) do
-        if deltaZ > 0 then
-            turtle.forward()
-        else
-            turtle.back()
+        -- Move to the next X-level
+        if x < radius then
+            if x % 2 == 0 then
+                turtle.turnRight()
+                turtle.dig()
+                turtle.forward()
+                turtle.turnRight()
+            else
+                turtle.turnLeft()
+                turtle.dig()
+                turtle.forward()
+                turtle.turnLeft()
+            end
         end
     end
+end
+
+-- Main program
+print("Enter cube radius:")
+local radius = tonumber(read())
+
+if radius and radius > 0 then
+    mineCube(radius)
+    print("Cube mined successfully!")
+else
+    print("Invalid radius input. Please enter a positive number.")
 end
