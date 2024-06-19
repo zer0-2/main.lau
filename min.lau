@@ -296,4 +296,13 @@ if distance > 0 then
     turtle.turnRight()
     turtle.turnRight()
     while (distance > 0) do
-       
+        clear()
+        print('Going back ' .. distance .. ' blocks')
+        while (not turtle.forward()) do
+            turtle.attack()
+            turtle.dig()
+        end
+        distance = distance - 1
+    end
+    print('Done!')
+end
