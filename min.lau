@@ -1,6 +1,36 @@
 -- Turtle Mining Program
 -- This program will mine a cubic area with specified dimensions.
 
+-- Function to find the chest and orient the turtle
+function findChestAndOrient()
+    local directions = {
+        { "forward", turtle.forward, turtle.detect, turtle.suck },
+        { "backward", turtle.back, function() return turtle.detectUp() end, turtle.suckUp },
+        { "up", turtle.up, turtle.detect, turtle.suck },
+        { "down", turtle.down, turtle.detectDown, turtle.suckDown }
+    }
+    
+    for i, dir in ipairs(directions) do
+        if dir[3]() then
+            dir[2]()
+            if dir[4]() then
+                print("Chest found " .. dir[1] .. ". Starting mining from the opposite direction.")
+                if dir[1] == "forward" then
+                    turtle.back()
+                elseif dir[1] == "backward" then
+                    turtle.forward()
+                elseif dir[1] == "up" then
+                    turtle.down()
+                elseif dir[1] == "down" then
+                    turtle.up()
+                end
+                return
+            end
+        end
+    end
+    error("No chest found nearby. Please place a chest with fuel and restart the program.")
+end
+
 -- Function to refuel the turtle from the chest
 function refuelFromChest()
     turtle.select(1)
@@ -70,12 +100,12 @@ function mineForward()
 end
 
 -- Function to mine the specified cubic area
-function mineCubicArea(depth, width, height)
+function mineCubicArea(depth, width, startY)
     local currentDepth, currentWidth, currentHeight = 0, 0, 0
 
-    for h = 1, height do
+    for h = startY, depth + startY - 1 do
         for w = 1, width do
-            for d = 1, depth - 1 do
+            for d = 1, width - 1 do
                 checkFuel()
                 if isInventoryFull() then
                     returnToStartAndDeposit(currentDepth, currentWidth, currentHeight)
@@ -98,7 +128,7 @@ function mineCubicArea(depth, width, height)
                 currentWidth = currentWidth + 1
             end
         end
-        if h < height then
+        if h < depth + startY - 1 then
             if width % 2 == 1 then
                 turtle.turnLeft()
             else
@@ -121,24 +151,27 @@ function mineCubicArea(depth, width, height)
 end
 
 -- Main program
-print("Enter the depth of the area to mine:")
-local depth = tonumber(read())
+print("Enter the depth to mine to (world Y-coordinate):")
+local targetY = tonumber(read())
 
 print("Enter the width of the area to mine:")
 local width = tonumber(read())
 
-print("Enter the height of the area to mine:")
-local height = tonumber(read())
+-- Calculate the start Y-coordinate of the turtle
+local startY = select(2, turtle.inspect())
 
 print("Starting mining operation...")
+
+-- Find the chest and orient the turtle
+findChestAndOrient()
 
 -- Refuel the turtle initially
 refuelFromChest()
 
 -- Start mining the area
-mineCubicArea(depth, width, height)
+mineCubicArea(targetY, width, startY)
 
 -- Return to the starting position and deposit items
-returnToStartAndDeposit(depth - 1, width - 1, height - 1)
+returnToStartAndDeposit(width - 1, width - 1, targetY - startY)
 
 print("Mining operation complete.")
