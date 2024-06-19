@@ -1,31 +1,18 @@
--- Function to get the turtle's current position
-local function getTurtlePosition()
-  local x, y, z = gps.locate()
-  if x then
-    return x, y, z
-  else
-    print("GPS not available. Make sure you have a modem connected and GPS enabled.")
-    return nil
-  end
-end
-
 -- Main function to mine a specified area
-local function mineArea(minX, maxX, minY, maxY, minZ, maxZ)
-  local x, y, z = getTurtlePosition()
-  if not x then
-    return  -- Exit if GPS is not available
-  end
+local function mineArea(startX, endX, startY, endY, startZ, endZ)
+  -- Assume the turtle starts at the provided coordinates
+  local x, y, z = startX, startY, startZ
   
   -- Mine the area
-  for i = minX, maxX do
-    for j = minY, maxY do
-      for k = minZ, maxZ do
+  for i = startX, endX do
+    for j = startY, endY do
+      for k = startZ, endZ do
         turtle.dig()
         turtle.forward()
       end
       turtle.turnLeft()
       turtle.turnLeft()
-      for k = minZ, maxZ do
+      for k = startZ, endZ do
         turtle.forward()
       end
       turtle.turnRight()
@@ -34,12 +21,12 @@ local function mineArea(minX, maxX, minY, maxY, minZ, maxZ)
     end
     turtle.turnLeft()
     turtle.turnLeft()
-    for j = minY, maxY do
+    for j = startY, endY do
       turtle.forward()
     end
     turtle.turnRight()
     turtle.turnRight()
-    if i < maxX then
+    if i < endX then
       turtle.turnRight()
       turtle.forward()
       turtle.turnLeft()
@@ -48,29 +35,29 @@ local function mineArea(minX, maxX, minY, maxY, minZ, maxZ)
   
   -- Return to starting position
   turtle.up()
-  for i = minX, maxX - 1 do
+  for i = startX, endX - 1 do
     turtle.back()
   end
   turtle.turnLeft()
-  for i = minY, maxY - 1 do
+  for i = startY, endY - 1 do
     turtle.back()
   end
   turtle.turnRight()
 end
 
 -- Get user input for the coordinates
-print("Enter the minimum X coordinate:")
-local minX = tonumber(read())
-print("Enter the maximum X coordinate:")
-local maxX = tonumber(read())
-print("Enter the minimum Y coordinate:")
-local minY = tonumber(read())
-print("Enter the maximum Y coordinate:")
-local maxY = tonumber(read())
-print("Enter the minimum Z coordinate:")
-local minZ = tonumber(read())
-print("Enter the maximum Z coordinate:")
-local maxZ = tonumber(read())
+print("Enter the starting X coordinate:")
+local startX = tonumber(read())
+print("Enter the ending X coordinate:")
+local endX = tonumber(read())
+print("Enter the starting Y coordinate:")
+local startY = tonumber(read())
+print("Enter the ending Y coordinate:")
+local endY = tonumber(read())
+print("Enter the starting Z coordinate:")
+local startZ = tonumber(read())
+print("Enter the ending Z coordinate:")
+local endZ = tonumber(read())
 
 -- Call the function to mine the specified area
-mineArea(minX, maxX, minY, maxY, minZ, maxZ)
+mineArea(startX, endX, startY, endY, startZ, endZ)
