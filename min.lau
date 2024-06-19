@@ -1,63 +1,32 @@
--- Main function to mine a specified area
-local function mineArea(startX, endX, startY, endY, startZ, endZ)
-  -- Assume the turtle starts at the provided coordinates
-  local x, y, z = startX, startY, startZ
-  
-  -- Mine the area
-  for i = startX, endX do
-    for j = startY, endY do
-      for k = startZ, endZ do
-        turtle.dig()
-        turtle.forward()
-      end
-      turtle.turnLeft()
-      turtle.turnLeft()
-      for k = startZ, endZ do
-        turtle.forward()
-      end
-      turtle.turnRight()
-      turtle.turnRight()
-      turtle.up()
-    end
-    turtle.turnLeft()
-    turtle.turnLeft()
-    for j = startY, endY do
-      turtle.forward()
-    end
-    turtle.turnRight()
-    turtle.turnRight()
-    if i < endX then
-      turtle.turnRight()
-      turtle.forward()
-      turtle.turnLeft()
-    end
-  end
-  
-  -- Return to starting position
-  turtle.up()
-  for i = startX, endX - 1 do
-    turtle.back()
-  end
-  turtle.turnLeft()
-  for i = startY, endY - 1 do
-    turtle.back()
-  end
-  turtle.turnRight()
+-- Function to get user input for destination coordinates
+function getUserInput()
+    print("Enter destination coordinates (X Y Z):")
+    local x = tonumber(read())
+    local y = tonumber(read())
+    local z = tonumber(read())
+    return x, y, z
 end
 
--- Get user input for the coordinates
-print("Enter the starting X coordinate:")
-local startX = tonumber(read())
-print("Enter the ending X coordinate:")
-local endX = tonumber(read())
-print("Enter the starting Y coordinate:")
-local startY = tonumber(read())
-print("Enter the ending Y coordinate:")
-local endY = tonumber(read())
-print("Enter the starting Z coordinate:")
-local startZ = tonumber(read())
-print("Enter the ending Z coordinate:")
-local endZ = tonumber(read())
+-- Function to calculate Euclidean distance between two points in 3D space
+function calculateDistance(x1, y1, z1, x2, y2, z2)
+    return math.sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
+end
 
--- Call the function to mine the specified area
-mineArea(startX, endX, startY, endY, startZ, endZ)
+-- Function to move the turtle to the specified coordinates
+function moveToCoordinates(x, y, z)
+    -- Your code to move the turtle goes here
+    -- You can use turtle.forward(), turtle.up(), turtle.down(), etc.
+    -- Ensure you handle the movements based on the calculated distance
+end
+
+-- Main program
+local destX, destY, destZ = getUserInput()
+local startX, startY, startZ = gps.locate()
+
+if startX and startY and startZ then
+    local distance = calculateDistance(startX, startY, startZ, destX, destY, destZ)
+    print("Distance to move:", distance)
+    moveToCoordinates(destX, destY, destZ)
+else
+    print("GPS signal not found. Make sure your turtle has a GPS module and is connected.")
+end
