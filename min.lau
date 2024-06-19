@@ -1,6 +1,3 @@
--- Turtle Mining Program
--- This program will mine a cubic area with specified dimensions.
-
 -- Function to check fuel level and refuel if necessary
 function checkFuel()
     if turtle.getFuelLevel() < 100 then
@@ -65,6 +62,36 @@ function mineForward()
     turtle.forward()
 end
 
+-- Function to get the turtle's coordinates and orientation
+function getTurtleLocation()
+    local x, y, z = gps.locate()
+    local orientation = "unknown"
+
+    if x then
+        local facing = turtle.inspect()
+        if facing and facing.name then
+            if facing.name == "minecraft:wall_sign" then
+                orientation = "west"
+            elseif facing.name == "minecraft:wall_sign" and facing.metadata == 1 then
+                orientation = "north"
+            elseif facing.name == "minecraft:wall_sign" and facing.metadata == 2 then
+                orientation = "east"
+            elseif facing.name == "minecraft:wall_sign" and facing.metadata == 3 then
+                orientation = "south"
+            end
+        end
+    end
+
+    return x, y, z, orientation
+end
+
+-- Function to print turtle's location and facing direction
+function printTurtleLocation()
+    local x, y, z, orientation = getTurtleLocation()
+    print("Turtle Location: X =", x, "Y =", y, "Z =", z)
+    print("Facing Direction:", orientation)
+end
+
 -- Function to turn the turtle to the specified direction
 function turnToDirection(direction)
     local currentDirection = "north"
@@ -76,6 +103,8 @@ function turnToDirection(direction)
         turnRight()
         currentDirection = directions[((table.find(directions, currentDirection) % 4) + 1)]
     end
+
+    printTurtleLocation() -- Print location and direction after turning
 end
 
 -- Function to mine the specified cubic area
