@@ -1,113 +1,214 @@
--- Function to find and refuel from chest
-function refuelFromChest()
-    for i = 1, 4 do
-        if turtle.detect() then
-            local success, data = turtle.inspect()
-            if data.name == "minecraft:chest" then
-                turtle.select(1)
-                if turtle.suck() then
-                    if turtle.refuel() then
-                        print("Refueled successfully")
-                        return true
-                    end
+-- Importing vector library
+local vector = require("vector")
+
+-- North 1
+-- East 2
+-- South 3
+-- West 4
+local rotation = 3
+local startpos
+
+-- Mine depth + random 0,5 
+local mineDepth = 15
+
+local mainPcId = 13
+
+local chunkRange = 50
+
+local baseHolePos = vector.new(240, mineDepth, -222)
+
+local chestPos = vector.new(240, 67, -215)
+
+local blockItemList = {"stone","dirt", "gravel", "marble", "basalt"}
+local blockAttackList = {"chest","turtle"}
+
+local slotMap = {}
+
+-- Function to check inventory items and drop items that aren't in the blockItemList
+function checkInv()
+    for i = 1, 16 do
+        local item = turtle.getItemDetail(i)
+        if item then
+            local found = false
+            for _, blockItem in ipairs(blockItemList) do
+                if string.find(item.name, blockItem) then
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                turtle.select(i)
+                turtle.drop()
+            end
+        end
+    end
+end
+
+-- Function to log messages
+function log(msg)
+    rednet.send(mainPcId, msg)
+end
+
+-- Function to move the turtle in a specified direction
+function move(dir)
+    if dir == 1 then
+        turtle.forward()
+    elseif dir == 2 then
+        turtle.up()
+    elseif dir == 3 then
+        turtle.down()
+    end
+end
+
+-- Function to turn the turtle left or right
+function turn(dir)
+    if dir == 0 then
+        turtle.turnLeft()
+        rotation = (rotation - 1) % 4
+    elseif dir == 1 then
+        turtle.turnRight()
+        rotation = (rotation + 1) % 4
+    end
+end
+
+-- Function to move the turtle to a specified position
+function moveTo(pos)
+    local deltaX = pos.x - startpos.x
+    local deltaY = pos.y - startpos.y
+    local deltaZ = pos.z - startpos.z
+
+    while rotation ~= 1 do
+        turn(0) -- Face North
+    end
+
+    for _ = 1, math.abs(deltaX) do
+        move(deltaX > 0 and 2 or 3) -- Move along X-axis
+    end
+
+    turn(deltaZ > 0 and 1 or 0) -- Turn towards Z-axis
+
+    for _ = 1, math.abs(deltaZ) do
+        move(deltaZ > 0 and 1 or 0) -- Move along Z-axis
+    end
+
+    turn(deltaY > 0 and 1 or 0) -- Turn towards Y-axis
+
+    for _ = 1, math.abs(deltaY) do
+        move(deltaY > 0 and 2 or 3) -- Move along Y-axis
+    end
+
+    startpos = pos -- Update start position
+end
+
+-- Function to check for ores in a specified direction
+function checkOres(dir)
+    if dir == 1 or dir == 4 then
+        local success, item = turtle.inspect()
+        if success then
+            for _, blockItem in ipairs(blockItemList) do
+                if not string.find(item.name, blockItem) then
+                    return true
                 end
             end
         end
-        turtle.turnRight()
+    elseif dir == 2 or dir == 4 then
+        local success, item = turtle.inspectUp()
+        if success then
+            for _, blockItem in ipairs(blockItemList) do
+                if not string.find(item.name, blockItem) then
+                    return true
+                end
+            end
+        end
+    elseif dir == 3 or dir == 4 then
+        local success, item = turtle.inspectDown()
+        if success then
+            for _, blockItem in ipairs(blockItemList) do
+                if not string.find(item.name, blockItem) then
+                    return true
+                end
+            end
+        end
     end
-    print("No fuel found in surrounding chests")
     return false
 end
 
--- Function to mine a row
-function mineRow(width)
-    for i = 1, width - 1 do
-        if turtle.getFuelLevel() < (width - i + 10) then -- Ensure enough fuel to return
-            local progress = i
-            returnToStart(depth, height)
-            if not refuelFromChest() then
-                error("Out of fuel!")
-            end
-            returnToPosition(progress, width, depth, height)
-        end
+-- Function to mine ores in all directions
+function collectOres()
+    if checkOres(4) then
         turtle.dig()
-        turtle.forward()
+    end
+    if checkOres(2) then
+        turtle.digUp()
+    end
+    if checkOres(3) then
+        turtle.digDown()
     end
 end
 
--- Function to return to the start position
-function returnToStart(depth, height)
-    turtle.turnLeft()
-    turtle.turnLeft()
-    for i = 1, height - 1 do
-        turtle.up()
-    end
-    for i = 1, depth do
-        turtle.forward()
-    end
-    turtle.turnRight()
-    for i = 1, miningWidth - 1 do
-        turtle.forward()
-    end
-    turtle.turnRight()
-end
+-- Main mining function
+function randomMine()
+    -- Go to base hole position
+    moveTo(baseHolePos)
 
--- Function to return to the current mining position
-function returnToPosition(currentWidth, width, depth, height)
-    turtle.turnRight()
-    for i = 1, width - currentWidth do
-        turtle.forward()
-    end
-    turtle.turnRight()
-    for i = 1, depth do
-        turtle.forward()
-    end
-    for i = 1, height - 1 do
-        turtle.down()
-    end
-    turtle.turnLeft()
-    turtle.turnLeft()
+    -- Initialize mining position
+    local depth = mineDepth + math.random(-5, 5)
+    local randomX = baseHolePos.x + math.random(-chunkRange, chunkRange)
+    local randomZ = baseHolePos.z + math.random(-chunkRange, chunkRange)
+    local minePos = vector.new(randomX, depth, randomZ)
+
+    -- Move to mining position
+    moveTo(minePos)
+
+    -- Check and collect ores
+    collectOres()
 end
 
 -- Main function
 function main()
-    -- Get mining dimensions from user
-    print("Enter mining width: ")
-    miningWidth = tonumber(read())
-    print("Enter mining height: ")
-    miningHeight = tonumber(read())
-    print("Enter mining depth: ")
-    miningDepth = tonumber(read())
+    -- Check inventory items and drop unneeded ones
+    checkInv()
 
-    -- Save the starting position
-    local startX, startY, startZ = gps.locate()
-
-    -- Ensure the turtle starts facing away from the chest
-    turtle.turnLeft()
-    turtle.turnLeft()
-
-    -- Move to the starting position for mining
-    for i = 1, miningDepth do
-        turtle.forward()
-    end
-    turtle.turnRight()
-
-    -- Main mining loop
-    for y = 1, miningHeight do
-        height = y
-        mineRow(miningWidth)
-        if y < miningHeight then
-            turtle.digDown()
-            turtle.down()
-            turtle.turnLeft()
-            turtle.turnLeft()
-            mineRow(miningWidth)
-        end
+    -- Check fuel level
+    local fuel = turtle.getFuelLevel()
+    if fuel == 0 then
+        log("Fuel empty at: " .. tostring(startpos))
+        return
     end
 
-    -- Return to starting point
-    returnToStart(miningDepth, miningHeight)
+    -- Random mining process
+    randomMine()
 end
 
--- Start the program
-main()
+-- Main loop
+function mainLoop()
+    while true do
+        main()
+        os.queueEvent("fakeEvent")
+        os.pullEvent()
+    end
+end
+
+-- Listen for commands
+function listen()
+    while true do
+        local id, message = rednet.receive()
+        if message == "home" then
+            moveTo(startpos)
+        elseif message == "work" then
+            -- Continue working
+        end
+        os.queueEvent("fakeEvent2")
+        os.pullEvent()
+    end
+end
+
+-- Main program
+position = vector.new(gps.locate(2, false))
+startpos = position
+
+-- Set up rednet
+rednet.open("right")
+
+-- Run main loop and listen concurrently
+parallel.waitForAny(mainLoop, listen)
