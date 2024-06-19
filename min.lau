@@ -5,7 +5,7 @@
 function findChestAndOrient()
     local directions = {
         { "forward", turtle.forward, turtle.detect, turtle.suck },
-        { "backward", turtle.back, function() return turtle.detectUp() end, turtle.suckUp },
+        { "backward", turtle.back, function() turtle.turnLeft() turtle.turnLeft() return turtle.detect() end, turtle.suck },
         { "up", turtle.up, turtle.detect, turtle.suck },
         { "down", turtle.down, turtle.detectDown, turtle.suckDown }
     }
@@ -102,8 +102,9 @@ end
 -- Function to mine the specified cubic area
 function mineCubicArea(depth, width, startY)
     local currentDepth, currentWidth, currentHeight = 0, 0, 0
+    local endY = startY - depth
 
-    for h = startY, depth + startY - 1 do
+    for h = startY, endY + 1, -1 do
         for w = 1, width do
             for d = 1, width - 1 do
                 checkFuel()
@@ -128,7 +129,7 @@ function mineCubicArea(depth, width, startY)
                 currentWidth = currentWidth + 1
             end
         end
-        if h < depth + startY - 1 then
+        if h > endY + 1 then
             if width % 2 == 1 then
                 turtle.turnLeft()
             else
@@ -157,8 +158,8 @@ local targetY = tonumber(read())
 print("Enter the width of the area to mine:")
 local width = tonumber(read())
 
--- Calculate the start Y-coordinate of the turtle
-local startY = select(2, turtle.inspect())
+-- Get the start Y-coordinate of the turtle
+local startY = select(2, turtle.inspectUp())
 
 print("Starting mining operation...")
 
@@ -172,6 +173,6 @@ refuelFromChest()
 mineCubicArea(targetY, width, startY)
 
 -- Return to the starting position and deposit items
-returnToStartAndDeposit(width - 1, width - 1, targetY - startY)
+returnToStartAndDeposit(width - 1, width - 1, startY - targetY)
 
 print("Mining operation complete.")
