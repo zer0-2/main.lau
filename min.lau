@@ -1,7 +1,25 @@
--- Function to find and refuel from chest
-function refuelFromChest()
+-- Function to find and refuel from chest and get coordinates
+function findChest()
     for i = 1, 4 do
+        if turtle.detect() then
+            local success, data = turtle.inspect()
+            if data.name == "minecraft:chest" then
+                return true
+            end
+        end
         turtle.turnRight()
+    end
+    return false
+end
+
+function refuelFromChest()
+    if not findChest() then
+        print("No chest found.")
+        return false
+    end
+    
+    local direction = 0 -- 0 = front, 1 = right, 2 = back, 3 = left
+    for i = 1, 4 do
         if turtle.detect() then
             turtle.select(1)
             if turtle.suck() then
@@ -11,8 +29,10 @@ function refuelFromChest()
                 end
             end
         end
+        turtle.turnRight()
+        direction = direction + 1
     end
-    print("No fuel found in surrounding chests")
+    print("No fuel found in the chest")
     return false
 end
 
@@ -67,6 +87,9 @@ function main()
     miningWidth = tonumber(read())
     print("Enter mining height: ")
     miningHeight = tonumber(read())
+
+    -- Save the starting position
+    local startX, startY, startZ = gps.locate()
 
     -- Main mining loop
     for y = 1, miningHeight do
