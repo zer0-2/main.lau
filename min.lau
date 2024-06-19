@@ -1,214 +1,352 @@
--- Importing vector library
-local vector = require("vector")
-
--- North 1
--- East 2
--- South 3
--- West 4
-local rotation = 3
-local startpos
-
--- Mine depth + random 0,5 
-local mineDepth = 15
-
-local mainPcId = 13
-
-local chunkRange = 50
-
-local baseHolePos = vector.new(240, mineDepth, -222)
-
-local chestPos = vector.new(240, 67, -215)
-
-local blockItemList = {"stone","dirt", "gravel", "marble", "basalt"}
-local blockAttackList = {"chest","turtle"}
-
-local slotMap = {}
-
--- Function to check inventory items and drop items that aren't in the blockItemList
-function checkInv()
-    for i = 1, 16 do
-        local item = turtle.getItemDetail(i)
-        if item then
-            local found = false
-            for _, blockItem in ipairs(blockItemList) do
-                if string.find(item.name, blockItem) then
-                    found = true
-                    break
-                end
-            end
-            if not found then
-                turtle.select(i)
-                turtle.drop()
-            end
-        end
-    end
+local tArgs = { ... }
+if #tArgs ~= 1 then
+	print( "Usage: excavate <diameter>" )
+	return
 end
 
--- Function to log messages
-function log(msg)
-    rednet.send(mainPcId, msg)
+-- Mine in a quarry pattern until we hit something we can't dig
+local size = tonumber( tArgs[1] )
+if size < 1 then
+	print( "Excavate diameter must be positive" )
+	return
+end
+	
+local depth = 0
+local unloaded = 0
+local collected = 0
+
+local xPos,zPos = 0,0
+local xDir,zDir = 0,1
+
+local goTo -- Filled in further down
+local refuel -- Filled in further down
+ 
+local function unload( _bKeepOneFuelStack )
+	print( "Unloading items..." )
+	for n=1,16 do
+		local nCount = turtle.getItemCount(n)
+		if nCount > 0 then
+			turtle.select(n)			
+			local bDrop = true
+			if _bKeepOneFuelStack and turtle.refuel(0) then
+				bDrop = false
+				_bKeepOneFuelStack = false
+			end			
+			if bDrop then
+				turtle.drop()
+				unloaded = unloaded + nCount
+			end
+		end
+	end
+	collected = 0
+	turtle.select(1)
 end
 
--- Function to move the turtle in a specified direction
-function move(dir)
-    if dir == 1 then
-        turtle.forward()
-    elseif dir == 2 then
-        turtle.up()
-    elseif dir == 3 then
-        turtle.down()
-    end
+local function returnSupplies()
+	local x,y,z,xd,zd = xPos,depth,zPos,xDir,zDir
+	print( "Returning to surface..." )
+	goTo( 0,0,0,0,-1 )
+	
+	local fuelNeeded = 2*(x+y+z) + 1
+	if not refuel( fuelNeeded ) then
+		unload( true )
+		print( "Waiting for fuel" )
+		while not refuel( fuelNeeded ) do
+			os.pullEvent( "turtle_inventory" )
+		end
+	else
+		unload( true )	
+	end
+	
+	print( "Resuming mining..." )
+	goTo( x,y,z,xd,zd )
 end
 
--- Function to turn the turtle left or right
-function turn(dir)
-    if dir == 0 then
-        turtle.turnLeft()
-        rotation = (rotation - 1) % 4
-    elseif dir == 1 then
-        turtle.turnRight()
-        rotation = (rotation + 1) % 4
-    end
+local function collect()	
+	local bFull = true
+	local nTotalItems = 0
+	for n=1,16 do
+		local nCount = turtle.getItemCount(n)
+		if nCount == 0 then
+			bFull = false
+		end
+		nTotalItems = nTotalItems + nCount
+	end
+	
+	if nTotalItems > collected then
+		collected = nTotalItems
+		if math.fmod(collected + unloaded, 50) == 0 then
+			print( "Mined "..(collected + unloaded).." items." )
+		end
+	end
+	
+	if bFull then
+		print( "No empty slots left." )
+		return false
+	end
+	return true
 end
 
--- Function to move the turtle to a specified position
-function moveTo(pos)
-    local deltaX = pos.x - startpos.x
-    local deltaY = pos.y - startpos.y
-    local deltaZ = pos.z - startpos.z
-
-    while rotation ~= 1 do
-        turn(0) -- Face North
-    end
-
-    for _ = 1, math.abs(deltaX) do
-        move(deltaX > 0 and 2 or 3) -- Move along X-axis
-    end
-
-    turn(deltaZ > 0 and 1 or 0) -- Turn towards Z-axis
-
-    for _ = 1, math.abs(deltaZ) do
-        move(deltaZ > 0 and 1 or 0) -- Move along Z-axis
-    end
-
-    turn(deltaY > 0 and 1 or 0) -- Turn towards Y-axis
-
-    for _ = 1, math.abs(deltaY) do
-        move(deltaY > 0 and 2 or 3) -- Move along Y-axis
-    end
-
-    startpos = pos -- Update start position
+function refuel( ammount )
+	local fuelLevel = turtle.getFuelLevel()
+	if fuelLevel == "unlimited" then
+		return true
+	end
+	
+	local needed = ammount or (xPos + zPos + depth + 2)
+	if turtle.getFuelLevel() < needed then
+		local fueled = false
+		for n=1,16 do
+			if turtle.getItemCount(n) > 0 then
+				turtle.select(n)
+				if turtle.refuel(1) then
+					while turtle.getItemCount(n) > 0 and turtle.getFuelLevel() < needed do
+						turtle.refuel(1)
+					end
+					if turtle.getFuelLevel() >= needed then
+						turtle.select(1)
+						return true
+					end
+				end
+			end
+		end
+		turtle.select(1)
+		return false
+	end
+	
+	return true
 end
 
--- Function to check for ores in a specified direction
-function checkOres(dir)
-    if dir == 1 or dir == 4 then
-        local success, item = turtle.inspect()
-        if success then
-            for _, blockItem in ipairs(blockItemList) do
-                if not string.find(item.name, blockItem) then
-                    return true
-                end
-            end
-        end
-    elseif dir == 2 or dir == 4 then
-        local success, item = turtle.inspectUp()
-        if success then
-            for _, blockItem in ipairs(blockItemList) do
-                if not string.find(item.name, blockItem) then
-                    return true
-                end
-            end
-        end
-    elseif dir == 3 or dir == 4 then
-        local success, item = turtle.inspectDown()
-        if success then
-            for _, blockItem in ipairs(blockItemList) do
-                if not string.find(item.name, blockItem) then
-                    return true
-                end
-            end
-        end
-    end
-    return false
+local function tryForwards()
+	if not refuel() then
+		print( "Not enough Fuel" )
+		returnSupplies()
+	end
+	
+	while not turtle.forward() do
+		if turtle.detect() then
+			if turtle.dig() then
+				if not collect() then
+					returnSupplies()
+				end
+			else
+				return false
+			end
+		elseif turtle.attack() then
+			if not collect() then
+				returnSupplies()
+			end
+		else
+			sleep( 0.5 )
+		end
+	end
+	
+	xPos = xPos + xDir
+	zPos = zPos + zDir
+	return true
 end
 
--- Function to mine ores in all directions
-function collectOres()
-    if checkOres(4) then
-        turtle.dig()
-    end
-    if checkOres(2) then
-        turtle.digUp()
-    end
-    if checkOres(3) then
-        turtle.digDown()
-    end
+local function tryDown()
+	if not refuel() then
+		print( "Not enough Fuel" )
+		returnSupplies()
+	end
+	
+	while not turtle.down() do
+		if turtle.detectDown() then
+			if turtle.digDown() then
+				if not collect() then
+					returnSupplies()
+				end
+			else
+				return false
+			end
+		elseif turtle.attackDown() then
+			if not collect() then
+				returnSupplies()
+			end
+		else
+			sleep( 0.5 )
+		end
+	end
+
+	depth = depth + 1
+	if math.fmod( depth, 10 ) == 0 then
+		print( "Descended "..depth.." metres." )
+	end
+
+	return true
 end
 
--- Main mining function
-function randomMine()
-    -- Go to base hole position
-    moveTo(baseHolePos)
-
-    -- Initialize mining position
-    local depth = mineDepth + math.random(-5, 5)
-    local randomX = baseHolePos.x + math.random(-chunkRange, chunkRange)
-    local randomZ = baseHolePos.z + math.random(-chunkRange, chunkRange)
-    local minePos = vector.new(randomX, depth, randomZ)
-
-    -- Move to mining position
-    moveTo(minePos)
-
-    -- Check and collect ores
-    collectOres()
+local function turnLeft()
+	turtle.turnLeft()
+	xDir, zDir = -zDir, xDir
 end
 
--- Main function
-function main()
-    -- Check inventory items and drop unneeded ones
-    checkInv()
-
-    -- Check fuel level
-    local fuel = turtle.getFuelLevel()
-    if fuel == 0 then
-        log("Fuel empty at: " .. tostring(startpos))
-        return
-    end
-
-    -- Random mining process
-    randomMine()
+local function turnRight()
+	turtle.turnRight()
+	xDir, zDir = zDir, -xDir
 end
 
--- Main loop
-function mainLoop()
-    while true do
-        main()
-        os.queueEvent("fakeEvent")
-        os.pullEvent()
-    end
+function goTo( x, y, z, xd, zd )
+	while depth > y do
+		if turtle.up() then
+			depth = depth - 1
+		elseif turtle.digUp() or turtle.attackUp() then
+			collect()
+		else
+			sleep( 0.5 )
+		end
+	end
+
+	if xPos > x then
+		while xDir ~= -1 do
+			turnLeft()
+		end
+		while xPos > x do
+			if turtle.forward() then
+				xPos = xPos - 1
+			elseif turtle.dig() or turtle.attack() then
+				collect()
+			else
+				sleep( 0.5 )
+			end
+		end
+	elseif xPos < x then
+		while xDir ~= 1 do
+			turnLeft()
+		end
+		while xPos < x do
+			if turtle.forward() then
+				xPos = xPos + 1
+			elseif turtle.dig() or turtle.attack() then
+				collect()
+			else
+				sleep( 0.5 )
+			end
+		end
+	end
+	
+	if zPos > z then
+		while zDir ~= -1 do
+			turnLeft()
+		end
+		while zPos > z do
+			if turtle.forward() then
+				zPos = zPos - 1
+			elseif turtle.dig() or turtle.attack() then
+				collect()
+			else
+				sleep( 0.5 )
+			end
+		end
+	elseif zPos < z then
+		while zDir ~= 1 do
+			turnLeft()
+		end
+		while zPos < z do
+			if turtle.forward() then
+				zPos = zPos + 1
+			elseif turtle.dig() or turtle.attack() then
+				collect()
+			else
+				sleep( 0.5 )
+			end
+		end	
+	end
+	
+	while depth < y do
+		if turtle.down() then
+			depth = depth + 1
+		elseif turtle.digDown() or turtle.attackDown() then
+			collect()
+		else
+			sleep( 0.5 )
+		end
+	end
+	
+	while zDir ~= zd or xDir ~= xd do
+		turnLeft()
+	end
 end
 
--- Listen for commands
-function listen()
-    while true do
-        local id, message = rednet.receive()
-        if message == "home" then
-            moveTo(startpos)
-        elseif message == "work" then
-            -- Continue working
-        end
-        os.queueEvent("fakeEvent2")
-        os.pullEvent()
-    end
+if not refuel() then
+	print( "Out of Fuel" )
+	return
 end
 
--- Main program
-position = vector.new(gps.locate(2, false))
-startpos = position
+print( "Excavating..." )
 
--- Set up rednet
-rednet.open("right")
+local reseal = false
+turtle.select(1)
+if turtle.digDown() then
+	reseal = true
+end
 
--- Run main loop and listen concurrently
-parallel.waitForAny(mainLoop, listen)
+local alternate = 0
+local done = false
+while not done do
+	for n=1,size do
+		for m=1,size-1 do
+			if not tryForwards() then
+				done = true
+				break
+			end
+		end
+		if done then
+			break
+		end
+		if n<size then
+			if math.fmod(n + alternate,2) == 0 then
+				turnLeft()
+				if not tryForwards() then
+					done = true
+					break
+				end
+				turnLeft()
+			else
+				turnRight()
+				if not tryForwards() then
+					done = true
+					break
+				end
+				turnRight()
+			end
+		end
+	end
+	if done then
+		break
+	end
+	
+	if size > 1 then
+		if math.fmod(size,2) == 0 then
+			turnRight()
+		else
+			if alternate == 0 then
+				turnLeft()
+			else
+				turnRight()
+			end
+			alternate = 1 - alternate
+		end
+	end
+	
+	if not tryDown() then
+		done = true
+		break
+	end
+end
+
+print( "Returning to surface..." )
+
+-- Return to where we started
+goTo( 0,0,0,0,-1 )
+unload( false )
+goTo( 0,0,0,0,1 )
+
+-- Seal the hole
+if reseal then
+	turtle.placeDown()
+end
+
+print( "Mined "..(collected + unloaded).." items total." )
