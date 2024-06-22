@@ -23,12 +23,6 @@ function digSideTunnel(length)
     end
 end
 
--- Define a function to turn around (180 degrees)
-function turtle.turnAround()
-    turtle.turnLeft()
-    turtle.turnLeft()
-end
-
 -- Initialize variables for tunnel lengths
 local run = 0
 local sideLength = 0
@@ -49,9 +43,10 @@ for i = 1, run do
     -- Dig the left side tunnel
     turtle.turnLeft()
     digSideTunnel(sideLength)
-    turtle.turnAround()
+    turtle.turnLeft() -- Turn back to the original path
     digSideTunnel(sideLength)
-    turtle.turnLeft() -- Back to original direction
+    turtle.turnRight() -- Align to original direction
+    turtle.turnRight() -- Now facing original direction
 
     -- Move forward to the next position
     digIt()
@@ -59,9 +54,10 @@ for i = 1, run do
     -- Dig the right side tunnel
     turtle.turnRight()
     digSideTunnel(sideLength)
-    turtle.turnAround()
+    turtle.turnRight() -- Turn back to the original path
     digSideTunnel(sideLength)
-    turtle.turnRight() -- Back to original direction
+    turtle.turnLeft() -- Align to original direction
+    turtle.turnLeft() -- Now facing original direction
 
     -- Move forward to the next position
     digIt()
