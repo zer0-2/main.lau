@@ -1,37 +1,49 @@
+-- Define the digIt function
 function digIt()
+    -- Check for blocks in front and dig them
     while turtle.detect() do
         turtle.dig()
         os.sleep(0.5)
     end
+    -- Move forward
     turtle.forward()
-    while turtle.detectDown() or turtle.detectUp() do
+    -- Check and dig blocks above and below
+    if turtle.detectUp() then
         turtle.digUp()
-        turtle.digDown()    
+    end
+    if turtle.detectDown() then
+        turtle.digDown()
     end
 end
 
+-- Define the function for digging side tunnels
 function digSideTunnel(length)
     for i = 1, length do
         digIt()
     end
 end
 
--- Define turnAround function
+-- Define a function to turn around (180 degrees)
 function turtle.turnAround()
     turtle.turnLeft()
     turtle.turnLeft()
 end
 
+-- Initialize variables for tunnel lengths
 local run = 0
 local sideLength = 0
 
-term.write("Tunnel length:")
+-- Prompt the user for the main tunnel length
+term.write("Tunnel length: ")
 run = tonumber(read())
 
-term.write("Side tunnel length:")
+-- Prompt the user for the side tunnel length
+term.write("Side tunnel length: ")
 sideLength = tonumber(read())
 
+-- Main loop to dig the tunnels
 for i = 1, run do 
+    -- Dig forward
     digIt()
     
     -- Dig the left side tunnel
@@ -39,7 +51,7 @@ for i = 1, run do
     digSideTunnel(sideLength)
     turtle.turnAround()
     digSideTunnel(sideLength)
-    turtle.turnLeft()
+    turtle.turnLeft() -- Back to original direction
 
     -- Move forward to the next position
     digIt()
@@ -49,10 +61,11 @@ for i = 1, run do
     digSideTunnel(sideLength)
     turtle.turnAround()
     digSideTunnel(sideLength)
-    turtle.turnRight()
-    
+    turtle.turnRight() -- Back to original direction
+
     -- Move forward to the next position
     digIt()
 end
 
+-- Move the turtle down one block (optional)
 turtle.down()
