@@ -10,23 +10,47 @@ function digIt()
     end
 end
 
+function digSideTunnel(length)
+    for i = 1, length do
+        digIt()
+    end
+end
+
 local run = 0
 
 term.write("Tunnel length:")
-run = read()
+run = tonumber(read())
+
+term.write("Side tunnel length:")
+sideLength = tonumber(read())
 
 for i = 1, run do 
     digIt()
+    
+    -- Dig the left side tunnel
     turtle.turnLeft()
+    digSideTunnel(sideLength)
+    turtle.turnAround()
+    digSideTunnel(sideLength)
+    turtle.turnLeft()
+
+    -- Move forward to the next position
     digIt()
+    
+    -- Dig the right side tunnel
     turtle.turnRight()
+    digSideTunnel(sideLength)
+    turtle.turnAround()
+    digSideTunnel(sideLength)
     turtle.turnRight()
-    turtle.forward()
+    
+    -- Move forward to the next position
     digIt()
-    turtle.turnLeft()
-    turtle.turnLeft()
-    turtle.forward()
-    turtle.turnRight()
 end
 
 turtle.down()
+
+function turtle.turnAround()
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
