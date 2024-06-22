@@ -1,5 +1,5 @@
 function digIt()
-    while turtle.detect()
+    while turtle.detect() do
         turtle.dig()
         os.sleep(0.5)
     end
@@ -18,3 +18,5 @@ run = read()
 for i = 1, run do 
     digIt()
 end
+
+turtle.down()
