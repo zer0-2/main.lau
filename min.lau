@@ -6,7 +6,7 @@ function digIt()
     turtle.forward()
     while turtle.detectDown() or turtle.detectUp() do
         turtle.digUp()
-        turtle.digDwon()    
+        turtle.digDown()    
     end
 end
 
