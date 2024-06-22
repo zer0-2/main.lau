@@ -1,46 +1,20 @@
-
--- Function to mine a cube shape around the turtle
-function mineCube(radius)
-    for x = -radius, radius do
-        for y = -radius, radius do
-            for z = -radius, radius do
-                turtle.dig()
-                turtle.forward()
-            end
-            if y < radius then
-                turtle.up()
-            end
-        end
-
-        -- Move to the starting Y-level
-        for i = 1, radius do
-            turtle.down()
-        end
-
-        -- Move to the next X-level
-        if x < radius then
-            if x % 2 == 0 then
-                turtle.turnRight()
-                turtle.dig()
-                turtle.forward()
-                turtle.turnRight()
-            else
-                turtle.turnLeft()
-                turtle.dig()
-                turtle.forward()
-                turtle.turnLeft()
-            end
-        end
+function digIt()
+    while turtle.detect()
+        turtle.dig()
+        os.sleep(0.5)
+    end
+    turtle.forward()
+    while turtle.detectDown() or turtle.detectUp() do
+        turtle.digUp()
+        turtle.digDwon()    
     end
 end
 
--- Main program
-print("Enter cube radius:")
-local radius = tonumber(read())
+local run = 0
 
-if radius and radius > 0 then
-    mineCube(radius)
-    print("Cube mined successfully!")
-else
-    print("Invalid radius input. Please enter a positive number.")
+term.write("Branch length:")
+run = read()
+
+for i = 1, run do 
+    digIt()
 end
