@@ -16,7 +16,14 @@ function digSideTunnel(length)
     end
 end
 
+-- Define turnAround function
+function turtle.turnAround()
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
+
 local run = 0
+local sideLength = 0
 
 term.write("Tunnel length:")
 run = tonumber(read())
@@ -49,8 +56,3 @@ for i = 1, run do
 end
 
 turtle.down()
-
-function turtle.turnAround()
-    turtle.turnLeft()
-    turtle.turnLeft()
-end
